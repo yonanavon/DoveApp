@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>משחק הלכות הרמב"ם</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f5f8fa;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            direction: rtl;
+        }
+        
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #3e5b99;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        #law-display {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f0f7ff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        #buttons-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .book-button {
+            padding: 12px 10px;
+            font-size: 16px;
+            background-color: #4a6da7;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .book-button:hover {
+            background-color: #3a5a8f;
+            transform: translateY(-2px);
+        }
+        
+        #feedback {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 30px;
+        }
+        
+        #score {
+            font-size: 18px;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e6f7ff;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        
+        #stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        #controls {
+            margin-top: 20px;
+        }
+        
+        #hint-button {
+            background-color: #9c27b0;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        #restart-button {
+            background-color: #28a745;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        
+        .correct {
+            animation: pulse 1s;
+            background-color: rgba(0, 255, 0, 0.1);
+        }
+        
+        .wrong {
+            animation: shake 0.5s;
+            background-color: rgba(255, 0, 0, 0.1);
+        }
+        
+        .highlight {
+            background-color: #4caf50 !important;
+        }
+        
+        .correct-text {
+            color: green;
+        }
+        
+        .wrong-text {
+            color: red;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>📚 משחק הלכות הרמב"ם</h1>
+        
+        <div id="stats-container">
+            <div class="stat-item">
+                <div class="stat-label">ניקוד</div>
+                <div id="score-value" class="stat-value">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">שאלות</div>
+                <div id="questions-value" class="stat-value">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">רצף נוכחי</div>
+                <div id="streak-value" class="stat-value">0</div>
+            </div>
+        </div>
+        
+        <div id="law-display"></div>
+        
+        <p>לאיזה ספר שייכות הלכות אלו?</p>
+        
+        <div id="buttons-container"></div>
+        
+        <div id="feedback"></div>
+        
+        <div id="controls">
+            <button id="hint-button">💡 השתמש ברמז</button>
+            <button id="restart-button">התחל משחק מחדש</button>
+        </div>
+    </div>
+
+    <script>
+        const rambamData = [
+            { law: "הלכות יסודי התורה", book: "ספר המדע" },
+            { law: "הלכות דעות", book: "ספר המדע" },
+            { law: "הלכות תלמוד תורה", book: "ספר המדע" },
+            { law: "הלכות עבודה זרה וחוקות הגויים", book: "ספר המדע" },
+            { law: "הלכות תשובה", book: "ספר המדע" },
+            { law: "הלכות קריאת שמע", book: "ספר אהבה" },
+            { law: "הלכות תפילה וברכת כהנים", book: "ספר אהבה" },
+            { law: "הלכות תפילין ומזוזה וספר תורה", book: "ספר אהבה" },
+            { law: "הלכות ציצית", book: "ספר אהבה" },
+            { law: "הלכות ברכות", book: "ספר אהבה" },
+            { law: "הלכות מילה", book: "ספר אהבה" },
+            { law: "הלכות סדר תפילות", book: "ספר אהבה" },
+            { law: "הלכות שבת", book: "ספר זמנים" },
+            { law: "הלכות עירובין", book: "ספר זמנים" },
+            { law: "הלכות שביתת עשור", book: "ספר זמנים" },
+            { law: "הלכות שביתת יום טוב", book: "ספר זמנים" },
+            { law: "הלכות חמץ ומצה", book: "ספר זמנים" },
+            { law: "הלכות שופר וסוכה ולולב", book: "ספר זמנים" },
+            { law: "הלכות שקלים", book: "ספר זמנים" },
+            { law: "הלכות קידוש החודש", book: "ספר זמנים" },
+            { law: "הלכות תעניות", book: "ספר זמנים" },
+            { law: "הלכות מגילה וחנוכה", book: "ספר זמנים" },
+            { law: "הלכות אישות", book: "ספר נשים" },
+            { law: "הלכות גירושין", book: "ספר נשים" },
+            { law: "הלכות יבום וחליצה", book: "ספר נשים" },
+            { law: "הלכות נערה בתולה", book: "ספר נשים" },
+            { law: "הלכות סוטה", book: "ספר נשים" },
+            { law: "הלכות איסורי ביאה", book: "ספר קדושה" },
+            { law: "הלכות מאכלות אסורות", book: "ספר קדושה" },
+            { law: "הלכות שחיטה", book: "ספר קדושה" },
+            { law: "הלכות שבועות", book: "ספר הפלאה" },
+            { law: "הלכות נדרים", book: "ספר הפלאה" },
+            { law: "הלכות נזירות", book: "ספר הפלאה" },
+            { law: "הלכות ערכין וחרמין", book: "ספר הפלאה" },
+            { law: "הלכות כלאים", book: "ספר זרעים" },
+            { law: "הלכות מתנות עניים", book: "ספר זרעים" },
+            { law: "הלכות תרומות", book: "ספר זרעים" },
+            { law: "הלכות מעשר", book: "ספר זרעים" },
+            { law: "הלכות מעשר שני ונטע רבעי", book: "ספר זרעים" },
+            { law: "הלכות ביכורים", book: "ספר זרעים" },
+            { law: "הלכות שמיטה ויובל", book: "ספר זרעים" },
+            { law: "הלכות בית הבחירה", book: "ספר עבודה" },
+            { law: "הלכות כלי המקדש והעובדים בו", book: "ספר עבודה" },
+            { law: "הלכות ביאת המקדש", book: "ספר עבודה" },
+            { law: "הלכות איסורי מזבח", book: "ספר עבודה" },
+            { law: "הלכות מעשה הקרבנות", book: "ספר עבודה" },
+            { law: "הלכות תמידין ומוספין", book: "ספר עבודה" },
+            { law: "הלכות פסולי המוקדשין", book: "ספר עבודה" },
+            { law: "הלכות עבודת יום הכיפורים", book: "ספר עבודה" },
+            { law: "הלכות מעילה", book: "ספר עבודה" },
+            { law: "הלכות קרבן פסח", book: "ספר קרבנות" },
+            { law: "הלכות חגיגה", book: "ספר קרבנות" },
+            { law: "הלכות בכורות", book: "ספר קרבנות" },
+            { law: "הלכות שגגות", book: "ספר קרבנות" },
+            { law: "הלכות מחוסרי כפרה", book: "ספר קרבנות" },
+            { law: "הלכות תמורה", book: "ספר קרבנות" },
+            { law: "הלכות טומאת מת", book: "ספר טהרה" },
+            { law: "הלכות פרה אדומה", book: "ספר טהרה" },
+            { law: "הלכות טומאת צרעת", book: "ספר טהרה" },
+            { law: "הלכות מטמאי משכב ומושב", book: "ספר טהרה" },
+            { law: "הלכות שאר אבות הטומאות", book: "ספר טהרה" },
+            { law: "הלכות טומאת אוכלין", book: "ספר טהרה" },
+            { law: "הלכות כלים", book: "ספר טהרה" },
+            { law: "הלכות מקוואות", book: "ספר טהרה" },
+            { law: "הלכות מכירה", book: "ספר קניין" },
+            { law: "הלכות זכייה ומתנה", book: "ספר קניין" },
+            { law: "הלכות שכנים", book: "ספר קניין" },
+            { law: "הלכות שלוחין ושותפין", book: "ספר קניין" },
+            { law: "הלכות עבדים", book: "ספר קניין" },
+            { law: "הלכות שכירות", book: "ספר נזיקין" },
+            { law: "הלכות שאלה ופקדון", book: "ספר נזיקין" },
+            { law: "הלכות מלווה ולווה", book: "ספר נזיקין" },
+            { law: "הלכות טוען ונטען", book: "ספר נזיקין" },
+            { law: "הלכות נחלות", book: "ספר נזיקין" },
+            { law: "הלכות סנהדרין", book: "ספר שופטים" },
+            { law: "הלכות עדות", book: "ספר שופטים" },
+            { law: "הלכות ממרים", book: "ספר שופטים" },
+            { law: "הלכות אבל", book: "ספר שופטים" },
+            { law: "הלכות מלכים ומלחמות", book: "ספר שופטים" }
+        ];
+
+        const allBooksWithIcons = [
+            { name: "ספר המדע", icon: "🧠" },
+            { name: "ספר אהבה", icon: "❤️" },
+            { name: "ספר זמנים", icon: "📅" },
+            { name: "ספר נשים", icon: "👩‍👧" },
+            { name: "ספר קדושה", icon: "📖" },
+            { name: "ספר הפלאה", icon: "🔍" },
+            { name: "ספר זרעים", icon: "🌾" },
+            { name: "ספר עבודה", icon: "🏛️" },
+            { name: "ספר קרבנות", icon: "🔥" },
+            { name: "ספר טהרה", icon: "💧" },
+            { name: "ספר קניין", icon: "💰" },
+            { name: "ספר נזיקין", icon: "🛡️" },
+            { name: "ספר שופטים", icon: "👑" }
+        ];
+
+        let currentLawIndex = null;
+        let score = 0;
+        let totalQuestions = 0;
+        let streak = 0;
+        let highestStreak = 0;
+        let usedLaws = [];
+        let showHint = false;
+        let hintsUsed = 0;
+
+        const lawDisplay = document.getElementById('law-display');
+        const buttonsContainer = document.getElementById('buttons-container');
+        const feedback = document.getElementById('feedback');
+        const scoreValue = document.getElementById('score-value');
+        const questionsValue = document.getElementById('questions-value');
+        const streakValue = document.getElementById('streak-value');
+        const hintButton = document.getElementById('hint-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // אתחול המשחק
+        function startGame() {
+            score = 0;
+            totalQuestions = 0;
+            streak = 0;
+            highestStreak = 0;
+            usedLaws = [];
+            hintsUsed = 0;
+            
+            updateStats();
+            createBookButtons();
+            selectNewLaw();
+            
+            feedback.textContent = '';
+            feedback.className = '';
+        }
+
+        // יצירת לחצנים של כל הספרים
+        function createBookButtons() {
+            buttonsContainer.innerHTML = '';
+            
+            allBooksWithIcons.forEach(book => {
+                const button = document.createElement('button');
+                button.className = 'book-button';
+                button.innerHTML = `${book.icon} ${book.name}`;
+                button.addEventListener('click', () => checkAnswer(book.name));
+                buttonsContainer.appendChild(button);
+            });
+        }
+
+        // בחירת הלכה חדשה באופן אקראי
+        function selectNewLaw() {
+            if (usedLaws.length >= rambamData.length) {
+                endGame();
+                return;
+            }
+
+            showHint = false;
+            
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * rambamData.length);
+            } while (usedLaws.includes(randomIndex));
+
+            currentLawIndex = randomIndex;
+            usedLaws.push(currentLawIndex);
+            
+            lawDisplay.textContent = rambamData[currentLawIndex].law;
+            
+            // איפוס מצב הלחצנים
+            document.querySelectorAll('.book-button').forEach(button => {
+                button.classList.remove('highlight');
+                button.disabled = false;
+            });
+        }
+
+        // בדיקת תשובת המשתמש
+        function checkAnswer(selectedBook) {
+            const correctBook = rambamData[currentLawIndex].book;
+            
+            if (selectedBook === correctBook) {
+                
+                // תשובה נכונה
+                score++;
+                streak++;
+                
+                if (streak > highestStreak) {
+                    highestStreak = streak;
+                }
+                
+                feedback.textContent = "נכון מאוד! ✓";
+                feedback.className = 'correct-text';
+                lawDisplay.classList.add('correct');
+                
+                // הדגשת הלחצן הנכון
+                highlightCorrectButton(correctBook);
+            } else {
+                // תשובה שגויה
+                streak = 0;
+                
+                feedback.textContent = `לא נכון. התשובה הנכונה היא: ${correctBook} ✗`;
+                feedback.className = 'wrong-text';
+                lawDisplay.classList.add('wrong');
+                
+                // הדגשת הלחצן הנכון
+                highlightCorrectButton(correctBook);
+            }
+            
+            totalQuestions++;
+            updateStats();
+            
+            // השבתת הלחצנים עד לשאלה הבאה
+            document.querySelectorAll('.book-button').forEach(button => {
+                button.disabled = true;
+            });
+            
+            // המתנה לפני המעבר לשאלה הבאה
+            setTimeout(() => {
+                lawDisplay.classList.remove('correct', 'wrong');
+                selectNewLaw();
+            }, 1500);
+        }
+
+        // הדגשת הלחצן הנכון
+        function highlightCorrectButton(correctBook) {
+            document.querySelectorAll('.book-button').forEach(button => {
+                const buttonText = button.textContent.trim().replace(/^. /, '');
+                if (buttonText === correctBook) {
+                    button.classList.add('highlight');
+                }
+            });
+        }
+
+        // עדכון הסטטיסטיקות המוצגות
+        function updateStats() {
+            scoreValue.textContent = score;
+            questionsValue.textContent = totalQuestions;
+            streakValue.textContent = streak;
+            
+            // הדגשת רצף גבוה
+            if (streak > 2) {
+                streakValue.style.color = '#ff9800';
+            } else {
+                streakValue.style.color = '';
+            }
+        }
+
+        // שימוש ברמז - מסיר חלק מהאפשרויות השגויות
+        function useHint() {
+            if (showHint) return;
+            
+            const correctBook = rambamData[currentLawIndex].book;
+            let incorrectButtons = [];
+            
+            document.querySelectorAll('.book-button').forEach(button => {
+                const buttonText = button.textContent.trim().replace(/^. /, '');
+                if (buttonText !== correctBook) {
+                    incorrectButtons.push(button);
+                }
+            });
+            
+            // בחירת מספר לחצנים שגויים להסרה באופן אקראי
+            const numToRemove = Math.floor(incorrectButtons.length * 0.6);
+            
+            for (let i = 0; i < numToRemove; i++) {
+                if (incorrectButtons.length === 0) break;
+                
+                const randomIndex = Math.floor(Math.random() * incorrectButtons.length);
+                incorrectButtons[randomIndex].style.display = 'none';
+                incorrectButtons.splice(randomIndex, 1);
+            }
+            
+            showHint = true;
+            hintsUsed++;
+            hintButton.disabled = true;
+        }
+
+        // סיום המשחק והצגת תוצאות
+        function endGame() {
+            lawDisplay.textContent = 'המשחק הסתיים!';
+            buttonsContainer.innerHTML = '';
+            
+            let rating;
+            const accuracy = score / totalQuestions;
+            
+            if (accuracy >= 0.9) rating = 'גאון תלמודי! 🏆';
+            else if (accuracy >= 0.8) rating = 'מצוין! 🌟';
+            else if (accuracy >= 0.6) rating = 'טוב מאוד! 👍';
+            else if (accuracy >= 0.4) rating = 'יש מקום לשיפור 📚';
+            else rating = 'נסה שוב... 🔄';
+            
+            feedback.innerHTML = `
+                <h2>סיכום תוצאות</h2>
+                <p>הניקוד הסופי: <strong>${score}</strong> מתוך <strong>${totalQuestions}</strong></p>
+                <p>רצף תשובות נכונות: <strong>${highestStreak}</strong></p>
+                <p>רמזים שהשתמשת: <strong>${hintsUsed}</strong></p>
+                <p>דירוג: <strong>${rating}</strong></p>
+            `;
+            feedback.className = '';
+            
+            hintButton.style.display = 'none';
+        }
+
+        // הרחבת פונקציונליות הלחצנים
+        hintButton.addEventListener('click', useHint);
+        restartButton.addEventListener('click', startGame);
+
+        // אתחול המשחק
+        startGame();
+    </script>
+</body>
+</html>
