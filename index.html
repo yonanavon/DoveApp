@@ -151,6 +151,10 @@
         .wrong-text {
             color: red;
         }
+
+        .correct-button {
+            border: 2px solid gold !important;
+        }
         
         @keyframes pulse {
             0% { transform: scale(1); }
@@ -313,6 +317,8 @@
         let usedLaws = [];
         let showHint = false;
         let hintsUsed = 0;
+        let correctButton = null; // לשמירת הלחצן הנכון
+        const MAX_QUESTIONS = 20; // מספר השאלות המקסימלי
 
         const lawDisplay = document.getElementById('law-display');
         const buttonsContainer = document.getElementById('buttons-container');
@@ -331,6 +337,7 @@
             highestStreak = 0;
             usedLaws = [];
             hintsUsed = 0;
+            correctButton = null;
             
             updateStats();
             createBookButtons();
@@ -348,6 +355,7 @@
                 const button = document.createElement('button');
                 button.className = 'book-button';
                 button.innerHTML = `${book.icon} ${book.name}`;
+                button.dataset.book = book.name; // שמירת שם הספר כנתון על הלחצן
                 button.addEventListener('click', () => checkAnswer(book.name));
                 buttonsContainer.appendChild(button);
             });
@@ -355,34 +363,44 @@
 
         // בחירת הלכה חדשה באופן אקראי
         function selectNewLaw() {
-    if (usedLaws.length >= rambamData.length) {
-        endGame();
-        return;
-    }
+            // בדיקה האם הגענו למספר השאלות המקסימלי
+            if (totalQuestions >= MAX_QUESTIONS || usedLaws.length >= rambamData.length) {
+                endGame();
+                return;
+            }
 
-    showHint = false;
-    
-    let randomIndex;
-    do {
-        randomIndex = Math.floor(Math.random() * rambamData.length);
-    } while (usedLaws.includes(randomIndex));
+            showHint = false;
+            correctButton = null;
+            
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * rambamData.length);
+            } while (usedLaws.includes(randomIndex));
 
-    currentLawIndex = randomIndex;
-    usedLaws.push(currentLawIndex);
-    
-    lawDisplay.textContent = rambamData[currentLawIndex].law;
-    
-    // איפוס מצב הלחצנים
-    document.querySelectorAll('.book-button').forEach(button => {
-        button.classList.remove('highlight');
-        button.disabled = false;
-        button.style.display = 'flex'; // החזרת כל הלחצנים שהוסתרו
-    });
-    
-    // איפוס כפתור הרמז
-    hintButton.disabled = false;
-}
-
+            currentLawIndex = randomIndex;
+            usedLaws.push(currentLawIndex);
+            
+            lawDisplay.textContent = rambamData[currentLawIndex].law;
+            
+            // איפוס הפידבק כאשר שאלה חדשה מופיעה
+            feedback.textContent = '';
+            feedback.className = '';
+            
+            // איפוס מצב הלחצנים
+            document.querySelectorAll('.book-button').forEach(button => {
+                button.classList.remove('highlight', 'correct-button');
+                button.disabled = false;
+                button.style.display = 'flex'; // החזרת כל הלחצנים שהוסתרו
+                
+                // מציאת הלחצן הנכון ושמירת ההפניה אליו
+                if (button.dataset.book === rambamData[currentLawIndex].book) {
+                    correctButton = button;
+                }
+            });
+            
+            // איפוס כפתור הרמז
+            hintButton.disabled = false;
+        }
 
         // בדיקת תשובת המשתמש
         function checkAnswer(selectedBook) {
@@ -424,6 +442,14 @@
                 button.disabled = true;
             });
             
+            // בדיקה אם הגענו למספר השאלות המקסימלי
+            if (totalQuestions >= MAX_QUESTIONS) {
+                setTimeout(() => {
+                    endGame();
+                }, 1500);
+                return;
+            }
+            
             // המתנה לפני המעבר לשאלה הבאה
             setTimeout(() => {
                 lawDisplay.classList.remove('correct', 'wrong');
@@ -455,35 +481,19 @@
             }
         }
 
-// תיקון פונקציית useHint כדי שלא תסיר את התשובה הנכונה
-function useHint() {
-    if (showHint) return;
-    
-    const correctBook = rambamData[currentLawIndex].book;
-    let incorrectButtons = [];
-    
-    document.querySelectorAll('.book-button').forEach(button => {
-        const buttonText = button.textContent.trim().replace(/^. /, '');
-        if (buttonText !== correctBook) {
-            incorrectButtons.push(button);
-        }
-    });
-    
-    // בחירת מספר לחצנים שגויים להסרה באופן אקראי
-    const numToRemove = Math.floor(incorrectButtons.length * 0.6);
-    
-    for (let i = 0; i < numToRemove; i++) {
-        if (incorrectButtons.length === 0) break;
-        
-        const randomIndex = Math.floor(Math.random() * incorrectButtons.length);
-        incorrectButtons[randomIndex].style.display = 'none';
-        incorrectButtons.splice(randomIndex, 1);
-    }
-    
-    showHint = true;
-    hintsUsed++;
-    hintButton.disabled = true;
-}
+        // שימוש ברמז - מסיר חלק מהאפשרויות השגויות
+        function useHint() {
+            if (showHint || !correctButton) return;
+            
+            // סימון הלחצן הנכון כדי שלא יוסר
+            correctButton.classList.add('correct-button');
+            
+            let incorrectButtons = [];
+            
+            // איסוף כל הלחצנים השגויים
+            document.querySelectorAll('.book-button:not(.correct-button)').forEach(button => {
+                incorrectButtons.push(button);
+            });
             
             // בחירת מספר לחצנים שגויים להסרה באופן אקראי
             const numToRemove = Math.floor(incorrectButtons.length * 0.6);
@@ -495,6 +505,9 @@ function useHint() {
                 incorrectButtons[randomIndex].style.display = 'none';
                 incorrectButtons.splice(randomIndex, 1);
             }
+            
+            // הסרת הסימון מהלחצן הנכון (אבל משאירים אותו מוצג)
+            correctButton.classList.remove('correct-button');
             
             showHint = true;
             hintsUsed++;
@@ -518,13 +531,18 @@ function useHint() {
             feedback.innerHTML = `
                 <h2>סיכום תוצאות</h2>
                 <p>הניקוד הסופי: <strong>${score}</strong> מתוך <strong>${totalQuestions}</strong></p>
-                <p>רצף תשובות נכונות: <strong>${highestStreak}</strong></p>
+                <p>רצף תשובות נכונות הכי גבוה: <strong>${highestStreak}</strong></p>
                 <p>רמזים שהשתמשת: <strong>${hintsUsed}</strong></p>
                 <p>דירוג: <strong>${rating}</strong></p>
             `;
             feedback.className = '';
             
             hintButton.style.display = 'none';
+            
+            // הצגת כפתור המשחק מחדש באופן בולט יותר
+            restartButton.style.fontSize = '22px';
+            restartButton.style.padding = '15px 40px';
+            restartButton.style.backgroundColor = '#ff9800';
         }
 
         // הרחבת פונקציונליות הלחצנים
