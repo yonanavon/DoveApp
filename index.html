@@ -355,29 +355,34 @@
 
         // בחירת הלכה חדשה באופן אקראי
         function selectNewLaw() {
-            if (usedLaws.length >= rambamData.length) {
-                endGame();
-                return;
-            }
+    if (usedLaws.length >= rambamData.length) {
+        endGame();
+        return;
+    }
 
-            showHint = false;
-            
-            let randomIndex;
-            do {
-                randomIndex = Math.floor(Math.random() * rambamData.length);
-            } while (usedLaws.includes(randomIndex));
+    showHint = false;
+    
+    let randomIndex;
+    do {
+        randomIndex = Math.floor(Math.random() * rambamData.length);
+    } while (usedLaws.includes(randomIndex));
 
-            currentLawIndex = randomIndex;
-            usedLaws.push(currentLawIndex);
-            
-            lawDisplay.textContent = rambamData[currentLawIndex].law;
-            
-            // איפוס מצב הלחצנים
-            document.querySelectorAll('.book-button').forEach(button => {
-                button.classList.remove('highlight');
-                button.disabled = false;
-            });
-        }
+    currentLawIndex = randomIndex;
+    usedLaws.push(currentLawIndex);
+    
+    lawDisplay.textContent = rambamData[currentLawIndex].law;
+    
+    // איפוס מצב הלחצנים
+    document.querySelectorAll('.book-button').forEach(button => {
+        button.classList.remove('highlight');
+        button.disabled = false;
+        button.style.display = 'flex'; // החזרת כל הלחצנים שהוסתרו
+    });
+    
+    // איפוס כפתור הרמז
+    hintButton.disabled = false;
+}
+
 
         // בדיקת תשובת המשתמש
         function checkAnswer(selectedBook) {
@@ -450,19 +455,35 @@
             }
         }
 
-        // שימוש ברמז - מסיר חלק מהאפשרויות השגויות
-        function useHint() {
-            if (showHint) return;
-            
-            const correctBook = rambamData[currentLawIndex].book;
-            let incorrectButtons = [];
-            
-            document.querySelectorAll('.book-button').forEach(button => {
-                const buttonText = button.textContent.trim().replace(/^. /, '');
-                if (buttonText !== correctBook) {
-                    incorrectButtons.push(button);
-                }
-            });
+// תיקון פונקציית useHint כדי שלא תסיר את התשובה הנכונה
+function useHint() {
+    if (showHint) return;
+    
+    const correctBook = rambamData[currentLawIndex].book;
+    let incorrectButtons = [];
+    
+    document.querySelectorAll('.book-button').forEach(button => {
+        const buttonText = button.textContent.trim().replace(/^. /, '');
+        if (buttonText !== correctBook) {
+            incorrectButtons.push(button);
+        }
+    });
+    
+    // בחירת מספר לחצנים שגויים להסרה באופן אקראי
+    const numToRemove = Math.floor(incorrectButtons.length * 0.6);
+    
+    for (let i = 0; i < numToRemove; i++) {
+        if (incorrectButtons.length === 0) break;
+        
+        const randomIndex = Math.floor(Math.random() * incorrectButtons.length);
+        incorrectButtons[randomIndex].style.display = 'none';
+        incorrectButtons.splice(randomIndex, 1);
+    }
+    
+    showHint = true;
+    hintsUsed++;
+    hintButton.disabled = true;
+}
             
             // בחירת מספר לחצנים שגויים להסרה באופן אקראי
             const numToRemove = Math.floor(incorrectButtons.length * 0.6);
